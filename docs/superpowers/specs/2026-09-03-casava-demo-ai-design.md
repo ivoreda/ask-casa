@@ -28,7 +28,7 @@ Build a demo insurance product shell whose primary deliverable is **Ask Casa**: 
 
 | Layer | Choice |
 |-------|--------|
-| API | Java, Spring Boot 3, Spring AI |
+| API | Java, Spring Boot **4.1.1** (latest stable), Spring AI |
 | LLM | OpenRouter (OpenAI-compatible) |
 | DB | Postgres (Docker Compose) |
 | Frontend | Vite + React + TypeScript |
@@ -66,6 +66,15 @@ On each chat turn (or from a short TTL cache), inject a compact product digest i
 
 - Product names, taglines, “from” premiums, headline cover limits
 - Hard rules: product info only; not legal/financial advice; personal account questions → refuse and point to registration stub
+
+**Why CAG when we already have tools?** Tools answer *specific* lookups; CAG gives the model a default map of the catalog so it can:
+
+1. **Route correctly** — know Income Protection / Health Cash / Device Protection exist before calling tools (fewer wrong or missed tool calls).
+2. **Answer cheap/fast questions** without a round trip — “what products do you offer?”, high-level comparisons.
+3. **Enforce behavior** — refuse personal-policy questions, stay on demo products, don’t invent cover outside the digest.
+4. **Stay coherent** across a multi-turn chat when the user says “the second one” or switches products.
+
+Tools remain the source of truth for limits, exclusions, and FAQs. CAG is the small always-on briefing; tools are the deep dive. If the digest ever duplicates tool data and drifts, shrink the digest to names + rules only.
 
 ### Tools (live company DB)
 
@@ -168,7 +177,7 @@ No stack traces or secrets in client responses. No intentional PII collection be
 | Grounding | Hybrid CAG + tools; RAG later |
 | UI | Chat-first shell |
 | Frontend | Vite + React + TypeScript |
-| Backend | Spring Boot + Spring AI + OpenRouter |
+| Backend | Spring Boot 4.1.1 + Spring AI + OpenRouter |
 | Streaming | Yes (SSE) |
 | Products | Income Protection, Health Cash, Device Protection |
 | Overall approach | Monolith Spring + thin React |

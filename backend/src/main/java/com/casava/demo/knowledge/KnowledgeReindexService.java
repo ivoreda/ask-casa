@@ -44,11 +44,13 @@ public class KnowledgeReindexService {
   }
 
   public void reindex() {
+    // JOIN FETCH product on exclusions/FAQs — open-in-view is false, so lazy
+    // Product proxies would otherwise throw LazyInitializationException here.
     List<KnowledgeChunkDocument> chunks =
         chunkBuilder.build(
             productRepository.findAll(),
-            exclusionRepository.findAll(),
-            faqRepository.findAll());
+            exclusionRepository.findAllWithProduct(),
+            faqRepository.findAllWithProduct());
 
     List<Document> documents = chunks.stream().map(this::toDocument).toList();
 

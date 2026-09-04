@@ -58,8 +58,8 @@ class KnowledgeReindexServiceTest {
     faq.setAnswer("Typically within 24–72 hours after approval.");
 
     when(productRepo.findAll()).thenReturn(List.of(product));
-    when(exclusionRepo.findAll()).thenReturn(List.of(exclusion));
-    when(faqRepo.findAll()).thenReturn(List.of(faq));
+    when(exclusionRepo.findAllWithProduct()).thenReturn(List.of(exclusion));
+    when(faqRepo.findAllWithProduct()).thenReturn(List.of(faq));
 
     Path storePath = tempDir.resolve("vector-store.json");
     Files.writeString(storePath, "{\"stale-uuid-id\":{}}");

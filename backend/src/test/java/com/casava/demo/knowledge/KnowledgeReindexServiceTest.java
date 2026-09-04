@@ -2,7 +2,6 @@ package com.casava.demo.knowledge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +14,7 @@ import com.casava.demo.product.ProductFaqRepository;
 import com.casava.demo.product.ProductRepository;
 import java.io.File;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
 
 class KnowledgeReindexServiceTest {
 
@@ -30,7 +31,7 @@ class KnowledgeReindexServiceTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void reindexAddsDocumentsToVectorStore() {
+  void reindexWipesStoreThenAddsDocuments() throws Exception {
     ProductRepository productRepo = mock(ProductRepository.class);
     ProductExclusionRepository exclusionRepo = mock(ProductExclusionRepository.class);
     ProductFaqRepository faqRepo = mock(ProductFaqRepository.class);
@@ -61,6 +62,8 @@ class KnowledgeReindexServiceTest {
     when(faqRepo.findAll()).thenReturn(List.of(faq));
 
     Path storePath = tempDir.resolve("vector-store.json");
+    Files.writeString(storePath, "{\"stale-uuid-id\":{}}");
+
     KnowledgeReindexService service =
         new KnowledgeReindexService(
             productRepo,
@@ -72,7 +75,8 @@ class KnowledgeReindexServiceTest {
 
     service.reindex();
 
-    verify(vectorStore).delete(anyList());
+    // Must clear ALL prior vectors (not only new UUID-based IDs), else H2 reseed leaves orphans.
+    verify(vectorStore).delete(any(Filter.Expression.class));
     ArgumentCaptor<List<Document>> captor = ArgumentCaptor.forClass(List.class);
     verify(vectorStore).add(captor.capture());
     verify(vectorStore).save(any(File.class));

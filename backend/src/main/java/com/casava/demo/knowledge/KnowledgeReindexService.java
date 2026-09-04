@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -51,13 +52,10 @@ public class KnowledgeReindexService {
 
     List<Document> documents = chunks.stream().map(this::toDocument).toList();
 
-    // Clear strategy for SimpleVectorStore demo: use stable document IDs
-    // (sourceType:sourceId), delete those IDs, then add. Missing delete-all is fine
-    // because put overwrites same IDs and the demo catalog is static.
-    List<String> ids = documents.stream().map(Document::getId).toList();
-    if (!ids.isEmpty()) {
-      vectorStore.delete(ids);
-    }
+    // Clear strategy for SimpleVectorStore demo: wipe the JSON file and delete every
+    // currently loaded knowledge doc via filter (isNotNull sourceType). Document IDs
+    // embed H2 UUIDs, so deleting only the new IDs would leave orphans after reseed.
+    clearStore();
 
     if (!documents.isEmpty()) {
       vectorStore.add(documents);
@@ -82,6 +80,16 @@ public class KnowledgeReindexService {
     } catch (java.io.IOException e) {
       return true;
     }
+  }
+
+  private void clearStore() {
+    try {
+      Files.deleteIfExists(vectorStorePath);
+    } catch (java.io.IOException e) {
+      throw new IllegalStateException("Failed to delete vector store file: " + vectorStorePath, e);
+    }
+    // SimpleVectorStore has no public list/clear-all; filter-delete matches all our chunks.
+    vectorStore.delete(new FilterExpressionBuilder().isNotNull("sourceType").build());
   }
 
   private Document toDocument(KnowledgeChunkDocument chunk) {

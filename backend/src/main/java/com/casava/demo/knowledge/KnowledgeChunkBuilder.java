@@ -6,7 +6,9 @@ import com.casava.demo.product.ProductFaq;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
+@Component
 public class KnowledgeChunkBuilder {
 
   public List<KnowledgeChunkDocument> build(

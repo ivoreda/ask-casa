@@ -34,6 +34,8 @@ casava:
     max-history-messages: 20
     frontend-origin: http://localhost:5173
     vector-store-path: ./data/vector-store.json
+  knowledge:
+    reindex-on-startup: true
 
 server:
   port: 8080

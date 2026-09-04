@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 public class VectorStoreConfig {
 
   @Bean
-  VectorStore vectorStore(
+  SimpleVectorStore vectorStore(
       EmbeddingModel embeddingModel,
       @Value("${casava.ai.vector-store-path:./data/vector-store.json}") String vectorStorePath)
       throws IOException {

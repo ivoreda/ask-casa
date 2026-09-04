@@ -4,9 +4,9 @@ Demo chat app that answers Casava product questions via RAG (H2 + SimpleVectorSt
 
 ## Prerequisites
 
-- Java 21
+- Java 21 (`JAVA_HOME` pointing at JDK 21)
 - Node.js 20+
-- An [OpenRouter](https://openrouter.ai/) API key
+- An [OpenRouter](https://openrouter.ai/) API key (chat + embeddings)
 
 ## Run
 
@@ -14,16 +14,24 @@ Demo chat app that answers Casava product questions via RAG (H2 + SimpleVectorSt
 
 ```bash
 export OPENROUTER_API_KEY=your-key-here
+# optional overrides:
+# export OPENROUTER_CHAT_MODEL=openai/gpt-4o-mini
+# export OPENROUTER_EMBEDDING_MODEL=openai/text-embedding-3-small
 ```
 
-2. Start the Spring Boot backend:
+2. Start the Spring Boot backend (from `backend/` so relative `./data` paths resolve):
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-The app uses a file-based H2 database under `backend/data/casava-db` and persists the vector index to `backend/data/vector-store.json`.
+On first start the app seeds three products (Income Protection, Health Cash, Device Protection) and reindexes them into the vector store. Expect a log line about indexed knowledge chunks.
+
+Data files (gitignored):
+
+- `backend/data/casava-db*` — H2 catalog
+- `backend/data/vector-store.json` — embeddings index
 
 3. Start the Vite frontend:
 
@@ -34,3 +42,34 @@ npm run dev
 ```
 
 Open http://localhost:5173 — the API listens on http://localhost:8080.
+
+## Tests
+
+```bash
+cd backend
+./mvnw test
+```
+
+```bash
+cd frontend
+npm run build
+```
+
+## Manual verification script
+
+With backend + frontend running and a real OpenRouter key:
+
+| Prompt | Expect |
+|--------|--------|
+| What’s covered under Device Protection? | Grounded answer + citation chips |
+| What are exclusions for Health Cash? | Exclusion-oriented answer + citations |
+| Compare Income Protection and Health Cash | Uses multiple product sources |
+| What’s on my policy? | Refusal + register / account message |
+| Do you cover spaceships? | Admits knowledge base has no match / no invented cover |
+| Get a quote / File a claim | “Register to continue” modal |
+
+## Stack notes
+
+- No Docker — local H2 + file-backed SimpleVectorStore
+- Spring Boot 4.1.1 + Spring AI 2.0.x → OpenRouter
+- Vite + React + TypeScript chat shell

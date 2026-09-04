@@ -43,6 +43,15 @@ npm run dev
 
 Open http://localhost:5173 — the API listens on http://localhost:8080.
 
+Optional: point the UI at a remote API during local/dev builds:
+
+```bash
+export VITE_API_URL=https://your-api.up.railway.app
+npm run dev
+```
+
+`VITE_API_URL` is the **API origin only** (no `/api/chat`). Vite bakes it in at **build** time — on Railway, set it on the frontend service and **redeploy/rebuild** (runtime-only env vars will not change an already-built bundle).
+
 ## Tests
 
 ```bash

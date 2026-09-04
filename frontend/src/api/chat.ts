@@ -12,7 +12,9 @@ export type ChatHandlers = {
   onError: (message: string) => void
 }
 
-const API_URL = 'http://localhost:8080/api/chat'
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
+  || 'http://localhost:8080'
+const API_URL = `${API_BASE}/api/chat`
 const SESSION_KEY = 'casava-session-id'
 
 export function getSessionId(): string {

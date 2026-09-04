@@ -32,10 +32,11 @@ casava:
     similarity-threshold: 0.55
     max-context-chars: 6000
     max-history-messages: 20
-    frontend-origin: http://localhost:5173
+    # Comma-separated. On Railway set CASAVA_AI_FRONTEND_ORIGIN to the web service URL.
+    frontend-origin: ${CASAVA_AI_FRONTEND_ORIGIN:http://localhost:5173}
     vector-store-path: ./data/vector-store.json
   knowledge:
     reindex-on-startup: true
 
 server:
-  port: 8080
+  port: ${PORT:8080}

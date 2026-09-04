@@ -52,6 +52,18 @@ npm run dev
 
 `VITE_API_URL` is the **API origin only** (no `/api/chat`). Vite bakes it in at **build** time — on Railway, set it on the frontend service and **redeploy/rebuild** (runtime-only env vars will not change an already-built bundle).
 
+### Railway CORS (backend service)
+
+Set this on the **API** service (runtime), then redeploy the API:
+
+```bash
+CASAVA_AI_FRONTEND_ORIGIN=https://your-frontend.up.railway.app
+```
+
+Must match the browser origin exactly (scheme + host, no trailing slash). Comma-separate multiple origins if needed. Startup logs include `CORS allowed origins: [...]`.
+
+Also set `OPENROUTER_API_KEY` on the API service. Railway injects `PORT`; the app binds to `${PORT:8080}`.
+
 ## Tests
 
 ```bash

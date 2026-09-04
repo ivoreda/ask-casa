@@ -11,7 +11,7 @@ Build a demo insurance product shell whose primary deliverable is **Ask Casa**: 
 ## Success criteria
 
 - A visitor can open a chat-first UI and ask product questions about Income Protection, Health Cash, and Device Protection.
-- Answers are grounded in retrieved chunks from the company knowledge base (seeded from Postgres product data), not generic model knowledge.
+- Answers are grounded in retrieved chunks from the company knowledge base (seeded from H2 product data), not generic model knowledge.
 - The UI can show which sources/chunks were used (product name / FAQ / exclusion) for demo credibility.
 - Replies stream token-by-token over SSE.
 - Questions about “my policy / my claim / my payout” are refused with a register/login stub message.
@@ -31,7 +31,8 @@ Build a demo insurance product shell whose primary deliverable is **Ask Casa**: 
 |-------|--------|
 | API | Java, Spring Boot **4.1.1** (latest stable), Spring AI |
 | LLM + embeddings | OpenRouter (chat model + embedding model) |
-| DB / vectors | Postgres + **pgvector** (Docker Compose) |
+| DB | **H2** file-based (`backend/data/casava-db`) — no Docker |
+| Vectors | Spring AI **SimpleVectorStore** (`backend/data/vector-store.json`) |
 | Frontend | Vite + React + TypeScript |
 | Streaming | Server-Sent Events (`text/event-stream`) |
 
@@ -43,9 +44,8 @@ Monorepo:
 
 ```
 casava-demo/
-  backend/              Spring Boot app
+  backend/              Spring Boot app (H2 + SimpleVectorStore under backend/data/)
   frontend/             Vite + React chat shell
-  docker-compose.yml    Postgres + pgvector
   docs/superpowers/specs/
 ```
 
@@ -55,17 +55,17 @@ Browser (Vite/React)
     ▼
 Spring Boot
     ├── System rules (short: refuse personal account Qs; answer only from context)
-    ├── Embed user query → similarity search (pgvector)
+    ├── Embed user query → similarity search (SimpleVectorStore)
     ├── Build prompt with top-k chunks + citations metadata
     ├── Spring AI chat → OpenRouter (stream tokens)
-    └── Source tables: products, exclusions, FAQs → indexed as knowledge_chunks
+    └── Source tables: products, exclusions, FAQs → indexed Documents in vector store
 ```
 
 **Ingest path (on seed / reindex):**
 
-1. Read structured company data from `products`, `product_exclusions`, `product_faqs`.
+1. Read structured company data from `products`, `product_exclusions`, `product_faqs` (H2).
 2. Chunk into retrieval units (e.g. one FAQ pair, one exclusion, one “product overview” block).
-3. Embed via OpenRouter embeddings API; store vectors + text + metadata in `knowledge_chunks`.
+3. Embed via OpenRouter embeddings API; store documents + metadata in SimpleVectorStore and persist to `vector-store.json`.
 
 ## Grounding strategy (RAG)
 
@@ -95,7 +95,7 @@ No full product digest in the prompt — knowledge comes from retrieval.
 - Demonstrates a production-shaped **company knowledge base** pattern (index once, retrieve many).
 - Scales when FAQs, exclusions, and longer product copy grow without stuffing the prompt.
 - Enables **citations** (“from Device Protection exclusions”) for stakeholder demos.
-- Structured Postgres remains the editorial source of truth; the vector index is derived.
+- Structured H2 catalog remains the editorial source of truth; the vector index is derived.
 
 Tool calling and a large CAG digest are **out of scope for v1**; they can return later for live account lookups after auth.
 
@@ -116,16 +116,14 @@ Tool calling and a large CAG digest are **out of scope for v1**; they can return
 
 - `id`, `product_id`, `question`, `answer`
 
-### `knowledge_chunks`
+### Vector store documents (SimpleVectorStore)
 
-- `id`
-- `product_id` (nullable for global copy)
-- `source_type` — `product_overview` | `exclusion` | `faq`
-- `source_id` — id of the originating row where applicable
-- `title` — short label for citations
+Each chunk is a Spring AI `Document` with:
+
 - `content` — chunk text embedded and retrieved
-- `embedding` — `vector` (pgvector; dimension matches chosen embedding model)
-- `updated_at`
+- metadata: `title`, `sourceType` (`product_overview` | `exclusion` | `faq`), `sourceId`, `productSlug`, `productName`
+
+Persisted to `backend/data/vector-store.json` (not a separate SQL embedding table).
 
 ### Seed products
 
@@ -138,7 +136,7 @@ Numbers may be Casava-shaped demo values; labeled as demo data. Seed must leave 
 ## Backend components
 
 - **`product`** — entities, repositories, seed runner for catalog tables
-- **`knowledge`** — chunk builder, embedding client, pgvector store, reindex job (run after seed)
+- **`knowledge`** — chunk builder, SimpleVectorStore reindex + save (run after seed)
 - **`ai`** — chat controller (SSE), retrieve → prompt → stream, session/history store (in-memory for demo)
 - **`config`** — CORS for Vite origin, OpenRouter chat + embedding model ids, datasource
 
@@ -197,11 +195,12 @@ No stack traces or secrets in client responses. No intentional PII collection be
 | Demo focus | Ask Casa first; stub quote/claims |
 | Knowledge source | Company DB → chunked/embedded knowledge base |
 | Personal data | Out of scope until registration/auth |
-| Grounding | **RAG (pgvector) primary**; thin system rules only |
+| Grounding | **RAG (SimpleVectorStore) primary**; thin system rules only |
+| Local infra | **No Docker** — H2 file DB + JSON vector store |
 | UI | Chat-first shell |
 | Frontend | Vite + React + TypeScript |
 | Backend | Spring Boot 4.1.1 + Spring AI + OpenRouter |
 | Streaming | Yes (SSE) |
 | Products | Income Protection, Health Cash, Device Protection |
 | Overall approach | Monolith Spring + thin React |
-| Vector store | Postgres + pgvector (same DB as catalog) |
+| Vector store | Spring AI SimpleVectorStore (file-backed) |

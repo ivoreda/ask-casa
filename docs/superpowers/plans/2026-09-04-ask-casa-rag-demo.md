@@ -2,11 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a chat-first Casava-style demo where Ask Casa answers product questions via RAG (Postgres product data → embeddings → pgvector → OpenRouter streaming), with quote/claims stubbed and no auth.
+> **Amendment (2026-09-04):** **No Docker.** Use **H2** file DB + Spring AI **SimpleVectorStore** (JSON file) instead of Postgres/pgvector. Task 1 already completed on this stack. Ignore any remaining Docker/Postgres/pgvector steps below; substitute H2 + SimpleVectorStore.
 
-**Architecture:** Monorepo with Spring Boot 4.1.1 + Spring AI 2.x backend (JPA catalog, chunk indexer into Spring AI `VectorStore`/pgvector, SSE chat) and a Vite + React + TypeScript frontend. Structured tables remain the editorial source of truth; the vector index is derived on seed/reindex.
+**Goal:** Build a chat-first Casava-style demo where Ask Casa answers product questions via RAG (H2 product data → embeddings → SimpleVectorStore → OpenRouter streaming), with quote/claims stubbed and no auth.
 
-**Tech Stack:** Java 21, Spring Boot 4.1.1, Spring AI 2.0.x (OpenAI-compatible client → OpenRouter), Postgres + pgvector, Vite, React, TypeScript
+**Architecture:** Monorepo with Spring Boot 4.1.1 + Spring AI 2.x backend (JPA catalog on H2, chunk indexer into SimpleVectorStore, SSE chat) and a Vite + React + TypeScript frontend. Structured tables remain the editorial source of truth; the vector index is derived on seed/reindex.
+
+**Tech Stack:** Java 21, Spring Boot 4.1.1, Spring AI 2.0.x (OpenAI-compatible client → OpenRouter), H2, SimpleVectorStore, Vite, React, TypeScript
 
 **Spec:** `docs/superpowers/specs/2026-09-03-casava-demo-ai-design.md`
 
@@ -63,7 +65,7 @@ casava-demo/
     src/components/StubModal.tsx
 ```
 
-**Note on vectors:** Spring AI PgVectorStore owns the `vector_store` table. Chunk metadata (`productSlug`, `productName`, `sourceType`, `sourceId`, `title`) lives in document metadata — same intent as the spec’s `knowledge_chunks` without a hand-rolled embedding column.
+**Note on vectors:** Spring AI **SimpleVectorStore** persists to `backend/data/vector-store.json`. Chunk metadata (`productSlug`, `productName`, `sourceType`, `sourceId`, `title`) lives in document metadata. Catalog data lives in H2.
 
 ---
 
@@ -238,15 +240,16 @@ If any product exists, skip. Otherwise insert:
 
 Use Casava-shaped demo copy; mark descriptions as demo data.
 
-- [ ] **Step 4: Boot against Docker Postgres and confirm seed**
+- [ ] **Step 4: Boot against H2 and confirm seed**
 
 ```bash
 cd backend && ./mvnw -q spring-boot:run
-# in another terminal:
-docker compose exec postgres psql -U casava -d casava -c "select slug, name from products;"
+# With H2 console enabled, open http://localhost:8080/h2-console
+# JDBC URL: jdbc:h2:file:./data/casava-db ; user sa ; blank password
+# Or query via a temporary CommandLineRunner / log product count on startup.
 ```
 
-Expected: three rows. Stop the app after check.
+Expected: three products seeded. Stop the app after check.
 
 - [ ] **Step 5: Commit**
 
@@ -360,7 +363,7 @@ git commit -m "feat: build RAG chunks from product catalog rows"
 
 ---
 
-### Task 4: Knowledge reindex into pgvector
+### Task 4: Knowledge reindex into SimpleVectorStore
 
 **Files:**
 - Create: `backend/src/main/java/com/casava/demo/knowledge/KnowledgeReindexService.java`
@@ -431,7 +434,7 @@ Expected logs: seeded products + “Indexed N knowledge chunks”.
 
 ```bash
 git add backend/src/main/java/com/casava/demo/knowledge backend/src/test/java/com/casava/demo/knowledge
-git commit -m "feat: reindex product knowledge into pgvector"
+git commit -m "feat: reindex product knowledge into SimpleVectorStore"
 ```
 
 ---
@@ -663,7 +666,6 @@ Expected: all PASS.
 - [ ] **Step 2: Run stack**
 
 ```bash
-docker compose up -d
 export OPENROUTER_API_KEY=...
 cd backend && ./mvnw spring-boot:run
 cd frontend && npm run dev
@@ -696,7 +698,7 @@ git commit -m "docs: add runbook and manual RAG verification script"
 | Spec requirement | Task |
 |------------------|------|
 | Spring Boot 4.1.1 + Spring AI + OpenRouter | 1 |
-| Postgres + pgvector | 1, 4 |
+| H2 + SimpleVectorStore (no Docker) | 1, 4 |
 | Product seed IP / Health / Device | 2 |
 | Chunk from overview/exclusion/FAQ | 3 |
 | Embed + index | 4 |

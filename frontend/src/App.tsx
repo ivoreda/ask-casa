@@ -3,12 +3,15 @@ import { AuthModal, type AuthMode } from './auth/AuthModal'
 import { useAuth } from './auth/AuthContext'
 import { ChatPanel } from './components/ChatPanel'
 import { StubModal } from './components/StubModal'
+import { MyPolicies } from './quote/MyPolicies'
+import { QuoteModal } from './quote/QuoteModal'
 
 export default function App() {
   const { user, logout, ready } = useAuth()
   const [claimStubOpen, setClaimStubOpen] = useState(false)
-  const [quoteStubOpen, setQuoteStubOpen] = useState(false)
-  const [policiesStubOpen, setPoliciesStubOpen] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const [policiesOpen, setPoliciesOpen] = useState(false)
+  const [policiesRefresh, setPoliciesRefresh] = useState(0)
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
 
@@ -22,7 +25,15 @@ export default function App() {
       openAuth('register')
       return
     }
-    setQuoteStubOpen(true)
+    setQuoteOpen(true)
+  }
+
+  function onMyPolicies() {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    setPoliciesOpen(true)
   }
 
   return (
@@ -38,11 +49,7 @@ export default function App() {
           </button>
           {ready && user ? (
             <>
-              <button
-                type="button"
-                className="nav-link"
-                onClick={() => setPoliciesStubOpen(true)}
-              >
+              <button type="button" className="nav-link" onClick={onMyPolicies}>
                 My policies
               </button>
               <span className="nav-user" title={user.email}>
@@ -90,17 +97,15 @@ export default function App() {
         title="File a claim"
         message="Claims filing isn’t available in this demo yet. Ask Casa can still explain cover and exclusions."
       />
-      <StubModal
-        open={quoteStubOpen}
-        onClose={() => setQuoteStubOpen(false)}
-        title="Get a quote"
-        message="Quote flow lands in the next update. You’re signed in — this button is a placeholder for now."
+      <QuoteModal
+        open={quoteOpen}
+        onClose={() => setQuoteOpen(false)}
+        onPurchased={() => setPoliciesRefresh((n) => n + 1)}
       />
-      <StubModal
-        open={policiesStubOpen}
-        onClose={() => setPoliciesStubOpen(false)}
-        title="My policies"
-        message="Policy list lands in the next update. You’re signed in — this button is a placeholder for now."
+      <MyPolicies
+        open={policiesOpen}
+        onClose={() => setPoliciesOpen(false)}
+        refreshKey={policiesRefresh}
       />
     </div>
   )

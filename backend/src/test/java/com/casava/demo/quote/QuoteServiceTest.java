@@ -3,6 +3,7 @@ package com.casava.demo.quote;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.casava.demo.product.ProductRepository;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,8 @@ class QuoteServiceTest {
 
   @BeforeEach
   void setUp() {
-    quoteService = new QuoteService();
+    // price() is pure; repos unused in these formula unit tests
+    quoteService = new QuoteService(null, null);
   }
 
   @Test

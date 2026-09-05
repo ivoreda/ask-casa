@@ -27,6 +27,9 @@ spring:
           model: ${OPENROUTER_EMBEDDING_MODEL:openai/text-embedding-3-small}
 
 casava:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-change-me-to-a-long-secret-key}
+    expiration-ms: 86400000
   ai:
     top-k: 5
     similarity-threshold: 0.55

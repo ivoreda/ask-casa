@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { getSessionId, streamChat, type Citation } from '../api/chat'
+import { useAuth } from '../auth/AuthContext'
 import { MessageList, type ChatMessage } from './MessageList'
 
 const SUGGESTIONS = [
@@ -10,6 +11,7 @@ const SUGGESTIONS = [
 ]
 
 export function ChatPanel() {
+  const { token } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<string | null>(null)
@@ -83,6 +85,7 @@ export function ChatPanel() {
           },
         },
         controller.signal,
+        token ?? undefined,
       )
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {

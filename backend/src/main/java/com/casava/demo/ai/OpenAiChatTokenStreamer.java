@@ -14,7 +14,12 @@ public class OpenAiChatTokenStreamer implements ChatTokenStreamer {
   }
 
   @Override
-  public Flux<String> stream(String systemPrompt, String userPrompt) {
-    return chatClient.prompt().system(systemPrompt).user(userPrompt).stream().content();
+  public Flux<String> stream(String systemPrompt, String userPrompt, Object... tools) {
+    ChatClient.ChatClientRequestSpec prompt =
+        chatClient.prompt().system(systemPrompt).user(userPrompt);
+    if (tools != null && tools.length > 0) {
+      prompt = prompt.tools(tools);
+    }
+    return prompt.stream().content();
   }
 }

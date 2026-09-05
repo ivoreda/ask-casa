@@ -4,5 +4,5 @@ import reactor.core.publisher.Flux;
 
 public interface ChatTokenStreamer {
 
-  Flux<String> stream(String systemPrompt, String userPrompt);
+  Flux<String> stream(String systemPrompt, String userPrompt, Object... tools);
 }

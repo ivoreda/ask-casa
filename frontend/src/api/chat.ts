@@ -37,15 +37,20 @@ export async function streamChat(
   message: string,
   handlers: ChatHandlers,
   signal?: AbortSignal,
+  token?: string,
 ): Promise<void> {
   let res: Response
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    }
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
     res = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
-      },
+      headers,
       body: JSON.stringify({ sessionId, message }),
       signal,
     })

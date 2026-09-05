@@ -1,5 +1,6 @@
 package com.casava.demo.ai;
 
+import com.casava.demo.auth.CurrentUser;
 import com.casava.demo.config.AiProperties;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,16 +18,19 @@ public class RagChatService {
   private final ChatTokenStreamer streamer;
   private final ChatSessionStore sessionStore;
   private final AiProperties properties;
+  private final AccountTools accountTools;
 
   public RagChatService(
       VectorStore vectorStore,
       ChatTokenStreamer streamer,
       ChatSessionStore sessionStore,
-      AiProperties properties) {
+      AiProperties properties,
+      AccountTools accountTools) {
     this.vectorStore = vectorStore;
     this.streamer = streamer;
     this.sessionStore = sessionStore;
     this.properties = properties;
+    this.accountTools = accountTools;
   }
 
   public RagChatResult chat(String sessionId, String message) {
@@ -46,10 +50,12 @@ public class RagChatService {
     String userPrompt = buildUserPrompt(contextDocs, message);
     List<Citation> citations = toCitations(contextDocs);
 
+    Object[] tools = CurrentUser.isPresent() ? new Object[] {accountTools} : new Object[0];
+
     StringBuilder assistant = new StringBuilder();
     Flux<String> tokens =
         streamer
-            .stream(SystemPrompt.TEXT, userPrompt)
+            .stream(SystemPrompt.TEXT, userPrompt, tools)
             .doOnNext(assistant::append)
             .doOnComplete(() -> sessionStore.appendAssistant(sessionId, assistant.toString()));
 

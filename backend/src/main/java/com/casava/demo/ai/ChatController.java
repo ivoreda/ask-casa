@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,10 +34,16 @@ public class ChatController {
   @PostMapping(value = "/api/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter chat(@Valid @RequestBody ChatRequest request) {
     SseEmitter emitter = new SseEmitter(0L);
+    // Virtual threads do not inherit ThreadLocal SecurityContext — copy auth explicitly.
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
     Thread.startVirtualThread(
         () -> {
           try {
+            if (authentication != null) {
+              SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+
             if (!StringUtils.hasText(apiKey)) {
               send(
                   emitter,
@@ -87,6 +95,8 @@ public class ChatController {
             } catch (Exception sendError) {
               emitter.completeWithError(sendError);
             }
+          } finally {
+            SecurityContextHolder.clearContext();
           }
         });
 

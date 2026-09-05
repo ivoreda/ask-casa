@@ -15,6 +15,10 @@ public final class CurrentUser {
         .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
   }
 
+  public static boolean isPresent() {
+    return findUserId().isPresent();
+  }
+
   public static Optional<UUID> findUserId() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || !authentication.isAuthenticated()) {

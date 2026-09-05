@@ -25,19 +25,21 @@ class RagChatServiceTest {
   private ChatTokenStreamer streamer;
   private ChatSessionStore sessionStore;
   private AiProperties properties;
+  private AccountTools accountTools;
   private RagChatService service;
 
   @BeforeEach
   void setUp() {
     vectorStore = mock(VectorStore.class);
     streamer = mock(ChatTokenStreamer.class);
+    accountTools = mock(AccountTools.class);
     properties = new AiProperties();
     properties.setTopK(5);
     properties.setSimilarityThreshold(0.55);
     properties.setMaxContextChars(6000);
     properties.setMaxHistoryMessages(20);
     sessionStore = new ChatSessionStore(properties);
-    service = new RagChatService(vectorStore, streamer, sessionStore, properties);
+    service = new RagChatService(vectorStore, streamer, sessionStore, properties, accountTools);
   }
 
   @Test
@@ -72,7 +74,7 @@ class RagChatServiceTest {
         .thenReturn(List.of(exclusion, belowThreshold));
 
     AtomicReference<String> capturedUserPrompt = new AtomicReference<>();
-    when(streamer.stream(eq(SystemPrompt.TEXT), any(String.class)))
+    when(streamer.stream(eq(SystemPrompt.TEXT), any(String.class), any(Object[].class)))
         .thenAnswer(
             invocation -> {
               capturedUserPrompt.set(invocation.getArgument(1));

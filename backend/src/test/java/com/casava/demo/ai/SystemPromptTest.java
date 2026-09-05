@@ -18,11 +18,26 @@ class SystemPromptTest {
   }
 
   @Test
-  void promptRefusesPersonalPolicyClaimPayoutAndMentionsRegistration() {
+  void promptMentionsLoginForQuotesAndPolicies() {
     String lower = SystemPrompt.TEXT.toLowerCase();
-    assertThat(lower).contains("policy");
-    assertThat(lower).contains("claim");
-    assertThat(lower).contains("payout");
+    assertThat(lower).contains("log in");
     assertThat(lower).contains("register");
+    assertThat(lower).contains("quote");
+    assertThat(lower).contains("policies");
+  }
+
+  @Test
+  void promptMentionsDemoPricingAndClaimsUnavailable() {
+    String lower = SystemPrompt.TEXT.toLowerCase();
+    assertThat(lower).contains("demo pricing");
+    assertThat(lower).contains("claim");
+    assertThat(lower).contains("not available");
+  }
+
+  @Test
+  void promptMentionsToolsWhenAuthenticated() {
+    String lower = SystemPrompt.TEXT.toLowerCase();
+    assertThat(lower).contains("authenticated");
+    assertThat(lower).contains("tools");
   }
 }

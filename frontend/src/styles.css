@@ -90,6 +90,28 @@ input {
   background: rgba(11, 61, 46, 0.06);
 }
 
+.nav-link:focus-visible,
+.btn:focus-visible,
+.composer input:focus-visible,
+.field input:focus-visible,
+.text-link:focus-visible,
+.suggestion:focus-visible {
+  outline: 2px solid rgba(26, 92, 69, 0.45);
+  outline-offset: 2px;
+}
+
+.nav-user {
+  align-self: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--brand);
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.35rem;
+}
+
 .shell {
   width: min(920px, 100%);
   margin: 0 auto;
@@ -287,6 +309,86 @@ input {
 
 .btn-primary:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-muted);
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.btn-ghost:hover {
+  color: var(--brand);
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.auth-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.auth-form h2 {
+  margin: 0;
+}
+
+.auth-lede {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.field input {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.auth-switch {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.text-link {
+  border: 0;
+  background: transparent;
+  color: var(--brand-soft);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.text-link:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
 }
 

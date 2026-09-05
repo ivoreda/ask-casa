@@ -1,6 +1,7 @@
 package com.casava.demo.auth;
 
 import java.time.Instant;
+import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,12 +23,13 @@ public class AuthService {
 
   @Transactional
   public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
-    if (userRepository.existsByEmail(request.email())) {
+    String email = normalizeEmail(request.email());
+    if (userRepository.existsByEmail(email)) {
       throw new AuthException(HttpStatus.CONFLICT, "Email already registered");
     }
 
     User user = new User();
-    user.setEmail(request.email());
+    user.setEmail(email);
     user.setName(request.name());
     user.setPasswordHash(passwordEncoder.encode(request.password()));
     user.setCreatedAt(Instant.now());
@@ -38,9 +40,10 @@ public class AuthService {
 
   @Transactional(readOnly = true)
   public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
+    String email = normalizeEmail(request.email());
     User user =
         userRepository
-            .findByEmail(request.email())
+            .findByEmail(email)
             .orElseThrow(
                 () -> new AuthException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
 
@@ -49,6 +52,10 @@ public class AuthService {
     }
 
     return toAuthResponse(user);
+  }
+
+  private static String normalizeEmail(String email) {
+    return email.trim().toLowerCase(Locale.ROOT);
   }
 
   private AuthDtos.AuthResponse toAuthResponse(User user) {

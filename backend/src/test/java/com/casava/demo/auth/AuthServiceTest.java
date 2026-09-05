@@ -48,7 +48,7 @@ class AuthServiceTest {
 
     AuthDtos.AuthResponse response =
         authService.register(
-            new AuthDtos.RegisterRequest("ada@example.com", "secret123", "Ada Lovelace"));
+            new AuthDtos.RegisterRequest("  Ada@Example.COM  ", "secret123", "Ada Lovelace"));
 
     ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
     verify(userRepository).save(captor.capture());
@@ -74,7 +74,7 @@ class AuthServiceTest {
     assertThatThrownBy(
             () ->
                 authService.register(
-                    new AuthDtos.RegisterRequest("ada@example.com", "secret123", "Ada")))
+                    new AuthDtos.RegisterRequest("  ADA@EXAMPLE.COM ", "secret123", "Ada")))
         .isInstanceOf(AuthException.class)
         .satisfies(
             ex -> {
@@ -96,12 +96,31 @@ class AuthServiceTest {
     when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(user));
 
     assertThatThrownBy(
-            () -> authService.login(new AuthDtos.LoginRequest("ada@example.com", "wrong-password")))
+            () ->
+                authService.login(
+                    new AuthDtos.LoginRequest("  Ada@Example.COM ", "wrong-password")))
         .isInstanceOf(AuthException.class)
         .satisfies(
             ex -> {
               AuthException authEx = (AuthException) ex;
               assertThat(authEx.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
             });
+  }
+
+  @Test
+  void loginNormalizesEmailBeforeLookup() {
+    User user = new User();
+    user.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+    user.setEmail("ada@example.com");
+    user.setName("Ada");
+    user.setPasswordHash(passwordEncoder.encode("secret123"));
+
+    when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(user));
+
+    AuthDtos.AuthResponse response =
+        authService.login(new AuthDtos.LoginRequest("  ADA@example.COM ", "secret123"));
+
+    assertThat(response.user().email()).isEqualTo("ada@example.com");
+    assertThat(jwtService.parseEmail(response.token())).isEqualTo("ada@example.com");
   }
 }

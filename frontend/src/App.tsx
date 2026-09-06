@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AuthModal, type AuthMode } from './auth/AuthModal'
 import { useAuth } from './auth/AuthContext'
 import { FileClaimModal } from './claims/FileClaimModal'
+import { MyClaims } from './claims/MyClaims'
 import { ChatPanel } from './components/ChatPanel'
 import { MyPolicies } from './quote/MyPolicies'
 import { QuoteModal } from './quote/QuoteModal'
@@ -12,6 +13,8 @@ export default function App() {
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [policiesOpen, setPoliciesOpen] = useState(false)
   const [policiesRefresh, setPoliciesRefresh] = useState(0)
+  const [claimsOpen, setClaimsOpen] = useState(false)
+  const [claimsRefresh, setClaimsRefresh] = useState(0)
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
 
@@ -44,6 +47,14 @@ export default function App() {
     setPoliciesOpen(true)
   }
 
+  function onMyClaims() {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    setClaimsOpen(true)
+  }
+
   return (
     <div className="app">
       <header className="topbar">
@@ -59,6 +70,9 @@ export default function App() {
             <>
               <button type="button" className="nav-link" onClick={onMyPolicies}>
                 My policies
+              </button>
+              <button type="button" className="nav-link" onClick={onMyClaims}>
+                My claims
               </button>
               <span className="nav-user" title={user.email}>
                 {user.name}
@@ -99,7 +113,11 @@ export default function App() {
         onModeChange={setAuthMode}
         onClose={() => setAuthOpen(false)}
       />
-      <FileClaimModal open={claimOpen} onClose={() => setClaimOpen(false)} />
+      <FileClaimModal
+        open={claimOpen}
+        onClose={() => setClaimOpen(false)}
+        onFiled={() => setClaimsRefresh((n) => n + 1)}
+      />
       <QuoteModal
         open={quoteOpen}
         onClose={() => setQuoteOpen(false)}
@@ -109,6 +127,11 @@ export default function App() {
         open={policiesOpen}
         onClose={() => setPoliciesOpen(false)}
         refreshKey={policiesRefresh}
+      />
+      <MyClaims
+        open={claimsOpen}
+        onClose={() => setClaimsOpen(false)}
+        refreshKey={claimsRefresh}
       />
     </div>
   )

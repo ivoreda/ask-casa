@@ -4,8 +4,10 @@ import { CheckoutPanel } from './CheckoutPanel'
 import {
   createQuote,
   formatNaira,
+  previewQuote,
   PRODUCT_LABELS,
   type ProductSlug,
+  type QuotePreviewResponse,
   type QuoteRequest,
   type QuoteResponse,
 } from './api'
@@ -14,6 +16,7 @@ type QuoteModalProps = {
   open: boolean
   onClose: () => void
   onPurchased?: () => void
+  onNeedAuth?: (mode: 'login' | 'register') => void
 }
 
 const PRODUCTS: ProductSlug[] = [
@@ -24,7 +27,12 @@ const PRODUCTS: ProductSlug[] = [
 
 type Step = 'form' | 'checkout'
 
-export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
+export function QuoteModal({
+  open,
+  onClose,
+  onPurchased,
+  onNeedAuth,
+}: QuoteModalProps) {
   const { token } = useAuth()
   const incomeId = useId()
   const monthsId = useId()
@@ -36,11 +44,16 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
   const [coverMonths, setCoverMonths] = useState('6')
   const [dependants, setDependants] = useState('0')
   const [deviceValue, setDeviceValue] = useState('300000')
-  const [quote, setQuote] = useState<QuoteResponse | null>(null)
+  const [savedQuote, setSavedQuote] = useState<QuoteResponse | null>(null)
+  const [preview, setPreview] = useState<QuotePreviewResponse | null>(null)
+  const [pendingRequest, setPendingRequest] = useState<QuoteRequest | null>(null)
+  const [wantsCheckout, setWantsCheckout] = useState(false)
   const [step, setStep] = useState<Step>('form')
   const [purchased, setPurchased] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const displayQuote = savedQuote ?? preview
 
   useEffect(() => {
     if (!open) return
@@ -53,13 +66,45 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
 
   useEffect(() => {
     if (!open) {
-      setQuote(null)
+      setSavedQuote(null)
+      setPreview(null)
+      setPendingRequest(null)
+      setWantsCheckout(false)
       setStep('form')
       setPurchased(false)
       setError(null)
       setBusy(false)
     }
   }, [open])
+
+  useEffect(() => {
+    if (!wantsCheckout || !token || !pendingRequest) return
+    let cancelled = false
+    async function promote() {
+      setBusy(true)
+      setError(null)
+      try {
+        const created = await createQuote(token!, pendingRequest!)
+        if (!cancelled) {
+          setSavedQuote(created)
+          setPreview(null)
+          setStep('checkout')
+          setWantsCheckout(false)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Could not save quote')
+          setWantsCheckout(false)
+        }
+      } finally {
+        if (!cancelled) setBusy(false)
+      }
+    }
+    void promote()
+    return () => {
+      cancelled = true
+    }
+  }, [wantsCheckout, token, pendingRequest])
 
   if (!open) return null
 
@@ -84,20 +129,60 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
     }
   }
 
+  function clearQuoteResult() {
+    setSavedQuote(null)
+    setPreview(null)
+    setPendingRequest(null)
+  }
+
   async function handleQuote(e: FormEvent) {
     e.preventDefault()
+    setError(null)
+    setBusy(true)
+    const request = buildRequest()
+    try {
+      if (token) {
+        const created = await createQuote(token, request)
+        setSavedQuote(created)
+        setPreview(null)
+        setPendingRequest(null)
+      } else {
+        const result = await previewQuote(request)
+        setPreview(result)
+        setSavedQuote(null)
+        setPendingRequest(request)
+      }
+    } catch (err) {
+      clearQuoteResult()
+      setError(err instanceof Error ? err.message : 'Quote failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function continueToBuy() {
     if (!token) {
-      setError('You need to be signed in to get a quote.')
+      setWantsCheckout(true)
+      onNeedAuth?.('register')
+      return
+    }
+    if (savedQuote) {
+      setStep('checkout')
+      return
+    }
+    if (!pendingRequest) {
+      setError('Calculate a premium before continuing.')
       return
     }
     setError(null)
     setBusy(true)
     try {
-      const created = await createQuote(token, buildRequest())
-      setQuote(created)
+      const created = await createQuote(token, pendingRequest)
+      setSavedQuote(created)
+      setPreview(null)
+      setStep('checkout')
     } catch (err) {
-      setQuote(null)
-      setError(err instanceof Error ? err.message : 'Quote failed')
+      setError(err instanceof Error ? err.message : 'Could not save quote')
     } finally {
       setBusy(false)
     }
@@ -105,7 +190,7 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
 
   function selectProduct(slug: ProductSlug) {
     setProductSlug(slug)
-    setQuote(null)
+    clearQuoteResult()
     setError(null)
     setStep('form')
     setPurchased(false)
@@ -120,9 +205,9 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
         aria-labelledby="quote-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        {step === 'checkout' && quote ? (
+        {step === 'checkout' && savedQuote ? (
           <CheckoutPanel
-            quote={quote}
+            quote={savedQuote}
             onBack={() => setStep('form')}
             onDone={() => {
               setPurchased(true)
@@ -167,7 +252,7 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
                     value={monthlyIncome}
                     onChange={(e) => {
                       setMonthlyIncome(e.target.value)
-                      setQuote(null)
+                      clearQuoteResult()
                     }}
                     disabled={busy}
                   />
@@ -183,7 +268,7 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
                     value={coverMonths}
                     onChange={(e) => {
                       setCoverMonths(e.target.value)
-                      setQuote(null)
+                      clearQuoteResult()
                     }}
                     disabled={busy}
                   />
@@ -203,7 +288,7 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
                   value={dependants}
                   onChange={(e) => {
                     setDependants(e.target.value)
-                    setQuote(null)
+                    clearQuoteResult()
                   }}
                   disabled={busy}
                 />
@@ -222,7 +307,7 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
                   value={deviceValue}
                   onChange={(e) => {
                     setDeviceValue(e.target.value)
-                    setQuote(null)
+                    clearQuoteResult()
                   }}
                   disabled={busy}
                 />
@@ -235,32 +320,36 @@ export function QuoteModal({ open, onClose, onPurchased }: QuoteModalProps) {
               </p>
             ) : null}
 
-            {quote ? (
+            {displayQuote ? (
               <dl className="quote-summary">
                 <div>
                   <dt>Product</dt>
-                  <dd>{PRODUCT_LABELS[quote.productSlug]}</dd>
+                  <dd>{PRODUCT_LABELS[displayQuote.productSlug]}</dd>
                 </div>
                 <div>
                   <dt>Monthly premium</dt>
-                  <dd>{formatNaira(Number(quote.monthlyPremium))}</dd>
+                  <dd>{formatNaira(Number(displayQuote.monthlyPremium))}</dd>
                 </div>
                 <div>
                   <dt>Cover amount</dt>
-                  <dd>{formatNaira(Number(quote.coverAmount))}</dd>
+                  <dd>{formatNaira(Number(displayQuote.coverAmount))}</dd>
                 </div>
               </dl>
             ) : null}
 
             <div className="quote-actions">
               <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Calculating…' : quote ? 'Recalculate' : 'Calculate premium'}
+                {busy
+                  ? 'Calculating…'
+                  : displayQuote
+                    ? 'Recalculate'
+                    : 'Calculate premium'}
               </button>
-              {quote ? (
+              {displayQuote ? (
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => setStep('checkout')}
+                  onClick={() => void continueToBuy()}
                   disabled={busy}
                 >
                   Continue to buy

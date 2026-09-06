@@ -1,6 +1,7 @@
 spring:
   application:
     name: casava-demo
+  # When DATABASE_URL is set (e.g. on Railway), Postgres datasource properties override these H2 defaults.
   datasource:
     url: jdbc:h2:file:./data/casava-db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
     username: sa

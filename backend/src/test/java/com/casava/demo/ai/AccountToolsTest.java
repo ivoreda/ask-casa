@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.casava.demo.claims.Claim;
+import com.casava.demo.claims.ClaimResponse;
 import com.casava.demo.claims.ClaimService;
 import com.casava.demo.claims.ClaimStatus;
 import com.casava.demo.purchase.PurchaseService;
@@ -102,5 +103,29 @@ class AccountToolsTest {
     verify(claimService).file(userId, policyId, "Phone stolen on the bus.");
     assertThat(result).contains("CLM-ABCDEF12");
     assertThat(result).contains("SUBMITTED");
+  }
+
+  @Test
+  void listMyClaimsDelegatesToClaimService() {
+    UUID policyId = UUID.randomUUID();
+    ClaimResponse response =
+        new ClaimResponse(
+            UUID.randomUUID(),
+            policyId,
+            "Phone stolen on the bus.",
+            "SUBMITTED",
+            "CLM-ABCDEF12",
+            Instant.parse("2026-09-06T06:00:00Z"),
+            "POL-XYZ",
+            "device-protection");
+
+    when(claimService.listMineResponses(userId)).thenReturn(List.of(response));
+
+    String result = tools.listMyClaims();
+
+    verify(claimService).listMineResponses(userId);
+    assertThat(result).contains("CLM-ABCDEF12");
+    assertThat(result).contains("POL-XYZ");
+    assertThat(result).contains("device-protection");
   }
 }

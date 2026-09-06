@@ -2,6 +2,7 @@ import {
   listMyPolicies,
   PRODUCT_LABELS,
   type PolicyResponse,
+  type ProductSlug,
 } from '../quote/api'
 
 export type ClaimResponse = {
@@ -11,6 +12,8 @@ export type ClaimResponse = {
   status: string
   claimNumber: string
   createdAt: string
+  policyNumber: string | null
+  productSlug: ProductSlug | null
 }
 
 const API_BASE =
@@ -42,6 +45,14 @@ export async function fileClaim(
   })
   if (!res.ok) throw new Error(await parseError(res))
   return (await res.json()) as ClaimResponse
+}
+
+export async function listMyClaims(token: string): Promise<ClaimResponse[]> {
+  const res = await fetch(`${API_BASE}/api/claims/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(await parseError(res))
+  return (await res.json()) as ClaimResponse[]
 }
 
 export async function loadPoliciesForClaim(

@@ -1,17 +1,21 @@
 package com.casava.demo.config;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.PropertySource;
 import org.springframework.util.StringUtils;
 
 /**
  * Maps Railway-style DATABASE_URL (postgres://user:pass@host:port/db) to Spring datasource
- * properties. When unset, application.yml H2 defaults remain.
+ * properties. When unset, application.yml H2 defaults remain. When set, DATABASE_URL overrides
+ * yml H2 unless SPRING_DATASOURCE_URL is explicitly present in the process environment.
  */
 public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
@@ -22,8 +26,9 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
     if (!StringUtils.hasText(databaseUrl)) {
       return;
     }
-    if (environment.getProperty("spring.datasource.url") != null) {
-      return; // explicit Spring URL wins
+    // Prefer an intentional env override; do not treat application.yml H2 as a blocker.
+    if (hasSystemEnvironmentProperty(environment, "SPRING_DATASOURCE_URL")) {
+      return;
     }
 
     URI uri = URI.create(databaseUrl);
@@ -42,9 +47,9 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
     String password = null;
     if (userInfo != null) {
       String[] parts = userInfo.split(":", 2);
-      username = parts[0];
+      username = decode(parts[0]);
       if (parts.length > 1) {
-        password = parts[1];
+        password = decode(parts[1]);
       }
     }
 
@@ -68,5 +73,15 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
     environment
         .getPropertySources()
         .addFirst(new MapPropertySource("databaseUrlProcessor", props));
+  }
+
+  private static boolean hasSystemEnvironmentProperty(
+      ConfigurableEnvironment environment, String name) {
+    PropertySource<?> systemEnvironment = environment.getPropertySources().get("systemEnvironment");
+    return systemEnvironment != null && systemEnvironment.containsProperty(name);
+  }
+
+  private static String decode(String value) {
+    return URLDecoder.decode(value, StandardCharsets.UTF_8);
   }
 }

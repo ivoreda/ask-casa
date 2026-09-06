@@ -61,21 +61,21 @@ npm run dev
 3. The UI keeps the Bearer token in memory and `sessionStorage` (demo reloads).
 4. **Log out** clears the token. `GET /api/auth/me` returns the current user when authenticated.
 
-Nav when anonymous: Register / Log in. After auth: Get a quote, My policies, Log out.
+Nav when anonymous: Register / Log in / Get a quote. After auth: Get a quote, My policies, My claims, Log out.
 
 ### Quote → demo pay → my policies
 
-1. **Get a quote** — pick Income Protection, Health Cash, or Device Protection; enter product inputs; see a monthly premium summary.
-2. **Continue to buy** → confirm holder details → **Pay (demo)** (no real card charge).
+1. **Get a quote** — works logged out. Pick Income Protection, Health Cash, or Device Protection; enter product inputs; see a monthly premium summary (guest preview is not persisted).
+2. **Continue to buy** — requires register/login. After auth, an owned quote is created from the same inputs → confirm holder details → **Pay (demo)** (no real card charge).
 3. Checkout creates an `ACTIVE` policy and marks the quote purchased.
-4. **My policies** lists policies owned by the logged-in user.
+4. **My policies** / **My claims** — still require auth; lists data owned by the logged-in user.
 
-Hitting Get a quote while logged out prompts register/login. File a claim remains a stub modal.
+File a claim remains auth-gated (stub modal when not logged in).
 
-### Ask Casa when logged in
+### Ask Casa
 
-- **Anonymous:** product RAG Q&A only. Quote / “my policy” requests get a login nudge.
-- **Authenticated:** chat sends `Authorization: Bearer <token>`. Tools can create a demo quote and list/read **your** policies (same services as the UI). Other users’ policy IDs are rejected.
+- **Anonymous:** product RAG Q&A plus demo price previews. Buying, policies, and claims get a login nudge.
+- **Authenticated:** chat sends `Authorization: Bearer <token>`. Tools can create a demo quote and list/read **your** policies and claims (same services as the UI). Other users’ policy IDs are rejected.
 
 ### Demo pricing disclaimer
 
@@ -90,7 +90,10 @@ Premiums use a simple deterministic formula from each product’s `monthlyFrom` 
 | `OPENROUTER_API_KEY` | yes | Chat + embeddings |
 | `JWT_SECRET` | **yes on Railway** | Signs JWTs; use a long random secret. Local default exists for dev only — do not reuse in prod. |
 | `CASAVA_AI_FRONTEND_ORIGIN` | yes (prod) | CORS: browser origin of the web app |
+| `DATABASE_URL` | Railway Postgres | Railway Postgres URL (`postgres://...`). When set, API uses Postgres; when unset, local H2. |
 | `PORT` | injected | App binds to `${PORT:8080}` |
+
+Attach Railway Postgres to the API service so `DATABASE_URL` is injected. Relational data (users, quotes, policies, claims) then survives redeploys. The vector store JSON may still rebuild on redeploy (ephemeral disk); product seed / reindex runs on startup against whichever DB is active.
 
 Set CORS on the **API** service (runtime), then redeploy:
 
@@ -131,19 +134,20 @@ With backend + frontend running and a real OpenRouter key:
 
 | Step | Expect |
 |------|--------|
-| Register / login | JWT stored; me works; nav shows quote / policies |
-| Quote each product | Premium updates with inputs (demo pricing) |
+| Register / login | JWT stored; me works; nav shows quote / policies / claims |
+| Guest Get a quote | Premium updates with inputs (demo pricing); no login required |
+| Continue to buy (logged out) | Register / login prompt, then owned quote + checkout |
 | Demo pay | Policy appears under My policies |
-| Chat logged out “quote me” | Asks to log in / register |
+| Chat logged out “quote me” | Demo price preview; buy needs login |
 | Chat logged in “quote device…” | Tool quote + numbers from quote engine |
 | Chat “my policies” | Lists owned policies |
 | What’s covered under Device Protection? | Grounded answer + citation chips |
 | What’s on my policy? (logged out) | Refusal + register / account message |
-| File a claim | Stub modal unchanged |
+| File a claim / My claims | Auth required |
 | Other user’s policy id | 403/404 |
 
 ## Stack notes
 
-- No Docker — local H2 + file-backed SimpleVectorStore
+- No Docker — local H2 (default) or Railway Postgres via `DATABASE_URL` + file-backed SimpleVectorStore
 - Spring Boot 4.1.1 + Spring Security (JWT) + Spring AI 2.0.x → OpenRouter
 - Vite + React + TypeScript chat shell

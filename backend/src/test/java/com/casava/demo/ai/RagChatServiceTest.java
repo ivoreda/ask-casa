@@ -30,6 +30,7 @@ class RagChatServiceTest {
   private ChatSessionStore sessionStore;
   private AiProperties properties;
   private AccountTools accountTools;
+  private GuestPricingTools guestPricingTools;
   private RagChatService service;
 
   @BeforeEach
@@ -37,13 +38,16 @@ class RagChatServiceTest {
     vectorStore = mock(VectorStore.class);
     streamer = mock(ChatTokenStreamer.class);
     accountTools = mock(AccountTools.class);
+    guestPricingTools = mock(GuestPricingTools.class);
     properties = new AiProperties();
     properties.setTopK(5);
     properties.setSimilarityThreshold(0.55);
     properties.setMaxContextChars(6000);
     properties.setMaxHistoryMessages(20);
     sessionStore = new ChatSessionStore(properties);
-    service = new RagChatService(vectorStore, streamer, sessionStore, properties, accountTools);
+    service =
+        new RagChatService(
+            vectorStore, streamer, sessionStore, properties, accountTools, guestPricingTools);
   }
 
   @Test
@@ -144,5 +148,25 @@ class RagChatServiceTest {
 
     assertThat(capturedUserPrompt.get()).startsWith(SystemPrompt.AUTHENTICATED_USER_PREFIX.trim());
     assertThat(capturedTool.get()).isSameAs(accountTools);
+  }
+
+  @Test
+  void prependsGuestPrefixAndPassesGuestPricingToolsWhenLoggedOut() {
+    when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+
+    AtomicReference<String> capturedUserPrompt = new AtomicReference<>();
+    AtomicReference<Object> capturedTool = new AtomicReference<>();
+    when(streamer.stream(eq(SystemPrompt.TEXT), any(String.class), any()))
+        .thenAnswer(
+            invocation -> {
+              capturedUserPrompt.set(invocation.getArgument(1));
+              capturedTool.set(invocation.getArgument(2));
+              return Flux.just("Demo premium is 4000.");
+            });
+
+    service.chat("session-guest", "How much for device protection?");
+
+    assertThat(capturedUserPrompt.get()).startsWith(SystemPrompt.GUEST_USER_PREFIX.trim());
+    assertThat(capturedTool.get()).isSameAs(guestPricingTools);
   }
 }

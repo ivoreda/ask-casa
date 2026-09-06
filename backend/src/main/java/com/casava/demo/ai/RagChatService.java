@@ -19,18 +19,21 @@ public class RagChatService {
   private final ChatSessionStore sessionStore;
   private final AiProperties properties;
   private final AccountTools accountTools;
+  private final GuestPricingTools guestPricingTools;
 
   public RagChatService(
       VectorStore vectorStore,
       ChatTokenStreamer streamer,
       ChatSessionStore sessionStore,
       AiProperties properties,
-      AccountTools accountTools) {
+      AccountTools accountTools,
+      GuestPricingTools guestPricingTools) {
     this.vectorStore = vectorStore;
     this.streamer = streamer;
     this.sessionStore = sessionStore;
     this.properties = properties;
     this.accountTools = accountTools;
+    this.guestPricingTools = guestPricingTools;
   }
 
   public RagChatResult chat(String sessionId, String message) {
@@ -48,10 +51,15 @@ public class RagChatService {
     List<Document> contextDocs = truncateToMaxChars(accepted);
     List<Citation> citations = toCitations(contextDocs);
 
-    Object[] tools = CurrentUser.isPresent() ? new Object[] {accountTools} : new Object[0];
+    Object[] tools =
+        CurrentUser.isPresent()
+            ? new Object[] {accountTools}
+            : new Object[] {guestPricingTools};
     String promptText = buildUserPrompt(contextDocs, message);
     if (CurrentUser.isPresent()) {
       promptText = SystemPrompt.AUTHENTICATED_USER_PREFIX + promptText;
+    } else {
+      promptText = SystemPrompt.GUEST_USER_PREFIX + promptText;
     }
 
     StringBuilder assistant = new StringBuilder();

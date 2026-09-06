@@ -57,4 +57,20 @@ class SystemPromptTest {
     assertThat(lower).contains("listmyclaims");
     assertThat(lower).contains("fileclaim");
   }
+
+  @Test
+  void promptMentionsGuestPreviewQuoteGuidance() {
+    String lower = SystemPrompt.TEXT.toLowerCase();
+    assertThat(lower).contains("previewquote");
+    assertThat(lower).contains("do not invent premiums");
+    assertThat(lower).contains("buying");
+  }
+
+  @Test
+  void guestPrefixMentionsPreviewQuote() {
+    String lower = SystemPrompt.GUEST_USER_PREFIX.toLowerCase();
+    assertThat(lower).contains("not logged in");
+    assertThat(lower).contains("previewquote");
+    assertThat(lower).contains("register");
+  }
 }

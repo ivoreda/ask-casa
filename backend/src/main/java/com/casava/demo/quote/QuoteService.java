@@ -34,6 +34,23 @@ public class QuoteService {
     return QuotePricer.price(request, monthlyFrom);
   }
 
+  @Transactional(readOnly = true)
+  public QuotePreviewResponse preview(QuoteRequest request) {
+    Product product =
+        productRepository
+            .findBySlug(request.productSlug())
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Unknown productSlug: " + request.productSlug()));
+    QuotePrice priced = price(request, product.getMonthlyFrom());
+    return new QuotePreviewResponse(
+        product.getSlug(),
+        toInputsMap(request),
+        priced.monthlyPremium(),
+        priced.coverAmount());
+  }
+
   @Transactional
   public Quote create(UUID userId, QuoteRequest request) {
     Product product =

@@ -17,7 +17,9 @@ public final class SystemPrompt {
         "what's on my policy", listing policies, listing claims, creating a quote, or filing a claim.
       - Do NOT say the knowledge base lacks personal policy or claim data without calling the
         relevant tools (listMyPolicies, getPolicy, listMyClaims, createQuote, fileClaim) first.
-      - When tools are NOT available, tell the user to log in or register.
+      - Guests can get demo prices via previewQuote when that tool is available. Do not invent premiums.
+      - Buying, listing policies, and filing or listing claims require login. When those tools are
+        NOT available, tell the user to log in or register.
 
       Claims:
       - When fileClaim is available, help the user file a demo claim against one of their policies.
@@ -37,6 +39,13 @@ public final class SystemPrompt {
       For claim history, call listMyClaims.
       For quote requests, call createQuote with the required product inputs.
       For claim filing, call fileClaim after you know policyId and a description.
+
+      """;
+
+  public static final String GUEST_USER_PREFIX =
+      """
+      The user is not logged in. Pricing tool previewQuote is available for demo premiums only.
+      Do not call account tools. For buying, policies, or claims, tell them to register or log in.
 
       """;
 

@@ -24,10 +24,6 @@ export default function App() {
   }
 
   function onGetQuote() {
-    if (!user) {
-      openAuth('register')
-      return
-    }
     setQuoteOpen(true)
   }
 
@@ -122,6 +118,7 @@ export default function App() {
         open={quoteOpen}
         onClose={() => setQuoteOpen(false)}
         onPurchased={() => setPoliciesRefresh((n) => n + 1)}
+        onNeedAuth={openAuth}
       />
       <MyPolicies
         open={policiesOpen}

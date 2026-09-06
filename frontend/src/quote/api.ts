@@ -52,6 +52,25 @@ async function parseError(res: Response): Promise<string> {
   return `Request failed (${res.status})`
 }
 
+export type QuotePreviewResponse = {
+  productSlug: ProductSlug
+  inputs: Record<string, unknown>
+  monthlyPremium: number
+  coverAmount: number
+}
+
+export async function previewQuote(
+  body: QuoteRequest,
+): Promise<QuotePreviewResponse> {
+  const res = await fetch(`${API_BASE}/api/quotes/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await parseError(res))
+  return (await res.json()) as QuotePreviewResponse
+}
+
 export async function createQuote(
   token: string,
   body: QuoteRequest,

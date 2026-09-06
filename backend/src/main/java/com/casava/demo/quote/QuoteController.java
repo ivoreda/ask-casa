@@ -19,6 +19,11 @@ public class QuoteController {
     this.quoteService = quoteService;
   }
 
+  @PostMapping("/preview")
+  public QuotePreviewResponse preview(@RequestBody QuoteRequest request) {
+    return quoteService.preview(request);
+  }
+
   @PostMapping
   public QuoteResponse create(@RequestBody QuoteRequest request) {
     UUID userId = CurrentUser.requireUserId();

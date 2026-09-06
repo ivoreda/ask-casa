@@ -11,9 +11,10 @@ import {
 type FileClaimModalProps = {
   open: boolean
   onClose: () => void
+  onFiled?: () => void
 }
 
-export function FileClaimModal({ open, onClose }: FileClaimModalProps) {
+export function FileClaimModal({ open, onClose, onFiled }: FileClaimModalProps) {
   const { token } = useAuth()
   const descriptionId = useId()
   const policyIdAttr = useId()
@@ -89,6 +90,7 @@ export function FileClaimModal({ open, onClose }: FileClaimModalProps) {
     try {
       const claim = await fileClaim(token, policyId, description.trim())
       setSubmitted(claim)
+      onFiled?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Claim failed')
     } finally {

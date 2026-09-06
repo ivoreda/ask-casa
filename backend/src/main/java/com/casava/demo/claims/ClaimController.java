@@ -20,12 +20,13 @@ public class ClaimController {
   @PostMapping("/api/claims")
   public ClaimResponse file(@RequestBody ClaimRequest request) {
     UUID userId = CurrentUser.requireUserId();
-    return ClaimResponse.from(claimService.file(userId, request.policyId(), request.description()));
+    Claim claim = claimService.file(userId, request.policyId(), request.description());
+    return claimService.toResponse(userId, claim);
   }
 
   @GetMapping("/api/claims/me")
   public List<ClaimResponse> mine() {
     UUID userId = CurrentUser.requireUserId();
-    return claimService.listMine(userId).stream().map(ClaimResponse::from).toList();
+    return claimService.listMineResponses(userId);
   }
 }

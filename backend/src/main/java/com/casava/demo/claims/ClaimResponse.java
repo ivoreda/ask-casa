@@ -9,15 +9,19 @@ public record ClaimResponse(
     String description,
     String status,
     String claimNumber,
-    Instant createdAt) {
+    Instant createdAt,
+    String policyNumber,
+    String productSlug) {
 
-  public static ClaimResponse from(Claim claim) {
+  public static ClaimResponse from(Claim claim, String policyNumber, String productSlug) {
     return new ClaimResponse(
         claim.getId(),
         claim.getPolicyId(),
         claim.getDescription(),
         claim.getStatus().name(),
         claim.getClaimNumber(),
-        claim.getCreatedAt());
+        claim.getCreatedAt(),
+        policyNumber,
+        productSlug);
   }
 }

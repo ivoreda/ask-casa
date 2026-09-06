@@ -45,6 +45,20 @@ public class ClaimService {
     return claimRepository.findByUserIdOrderByCreatedAtDesc(userId);
   }
 
+  @Transactional(readOnly = true)
+  public List<ClaimResponse> listMineResponses(UUID userId) {
+    return listMine(userId).stream().map(c -> toResponse(userId, c)).toList();
+  }
+
+  public ClaimResponse toResponse(UUID userId, Claim claim) {
+    try {
+      Policy policy = purchaseService.getOwned(userId, claim.getPolicyId());
+      return ClaimResponse.from(claim, policy.getPolicyNumber(), policy.getProductSlug());
+    } catch (RuntimeException ex) {
+      return ClaimResponse.from(claim, null, null);
+    }
+  }
+
   static String newClaimNumber() {
     String hex = UUID.randomUUID().toString().replace("-", "");
     return "CLM-" + hex.substring(0, 8).toUpperCase();

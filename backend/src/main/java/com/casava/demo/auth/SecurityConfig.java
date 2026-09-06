@@ -35,7 +35,11 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/chat")
                     .permitAll()
                     .requestMatchers(
-                        "/api/quotes/**", "/api/purchases", "/api/policies/**", "/api/auth/me")
+                        "/api/quotes/**",
+                        "/api/purchases",
+                        "/api/policies/**",
+                        "/api/claims/**",
+                        "/api/auth/me")
                     .authenticated()
                     .anyRequest()
                     .permitAll())

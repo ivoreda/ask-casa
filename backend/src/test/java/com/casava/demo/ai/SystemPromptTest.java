@@ -7,9 +7,10 @@ import org.junit.jupiter.api.Test;
 class SystemPromptTest {
 
   @Test
-  void promptRequiresAnsweringOnlyFromContext() {
-    assertThat(SystemPrompt.TEXT.toLowerCase()).contains("only from");
-    assertThat(SystemPrompt.TEXT.toLowerCase()).contains("context");
+  void promptRequiresProductFactsFromContext() {
+    String lower = SystemPrompt.TEXT.toLowerCase();
+    assertThat(lower).contains("context");
+    assertThat(lower).contains("do not invent");
   }
 
   @Test
@@ -18,7 +19,7 @@ class SystemPromptTest {
   }
 
   @Test
-  void promptMentionsLoginForQuotesAndPolicies() {
+  void promptMentionsLoginForAccountActions() {
     String lower = SystemPrompt.TEXT.toLowerCase();
     assertThat(lower).contains("log in");
     assertThat(lower).contains("register");
@@ -27,17 +28,19 @@ class SystemPromptTest {
   }
 
   @Test
-  void promptMentionsDemoPricingAndClaimsUnavailable() {
+  void promptRequiresToolsForPersonalPolicyQuestions() {
     String lower = SystemPrompt.TEXT.toLowerCase();
+    assertThat(lower).contains("listmypolicies");
+    assertThat(lower).contains("must call");
     assertThat(lower).contains("demo pricing");
-    assertThat(lower).contains("claim");
-    assertThat(lower).contains("not available");
   }
 
   @Test
-  void promptMentionsToolsWhenAuthenticated() {
-    String lower = SystemPrompt.TEXT.toLowerCase();
-    assertThat(lower).contains("authenticated");
-    assertThat(lower).contains("tools");
+  void authenticatedPrefixMentionsAccountTools() {
+    String lower = SystemPrompt.AUTHENTICATED_USER_PREFIX.toLowerCase();
+    assertThat(lower).contains("logged in");
+    assertThat(lower).contains("listmypolicies");
+    assertThat(lower).contains("createquote");
+    assertThat(lower).contains("fileclaim");
   }
 }

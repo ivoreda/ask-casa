@@ -1,6 +1,8 @@
 package com.casava.demo.ai;
 
 import com.casava.demo.auth.CurrentUser;
+import com.casava.demo.claims.Claim;
+import com.casava.demo.claims.ClaimService;
 import com.casava.demo.purchase.Policy;
 import com.casava.demo.purchase.PurchaseService;
 import com.casava.demo.quote.Quote;
@@ -14,18 +16,19 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-/**
- * Ask Casa tools for authenticated quote and policy lookups. Demo pricing / not binding.
- */
+/** Ask Casa tools for authenticated quote, policy, and claim actions. Demo only. */
 @Component
 public class AccountTools {
 
   private final QuoteService quoteService;
   private final PurchaseService purchaseService;
+  private final ClaimService claimService;
 
-  public AccountTools(QuoteService quoteService, PurchaseService purchaseService) {
+  public AccountTools(
+      QuoteService quoteService, PurchaseService purchaseService, ClaimService claimService) {
     this.quoteService = quoteService;
     this.purchaseService = purchaseService;
+    this.claimService = claimService;
   }
 
   @Tool(
@@ -57,19 +60,20 @@ public class AccountTools {
           + " coverAmount="
           + quote.getCoverAmount()
           + " status="
-          + quote.getStatus();
+          + quote.getStatus()
+          + ". Tell the user they can buy it via Get a quote → Continue to buy.";
     } catch (Exception ex) {
       return "Could not create quote: " + message(ex);
     }
   }
 
-  @Tool(description = "List the logged-in user's demo policies")
+  @Tool(description = "List the logged-in user's demo policies. Call this for 'what's on my policy'.")
   public String listMyPolicies() {
     try {
       UUID userId = CurrentUser.requireUserId();
       List<Policy> policies = purchaseService.listMine(userId);
       if (policies.isEmpty()) {
-        return "You have no policies yet.";
+        return "You have no policies yet. Offer to help them get a quote.";
       }
       return policies.stream().map(AccountTools::summarizePolicy).collect(Collectors.joining("\n"));
     } catch (Exception ex) {
@@ -78,14 +82,36 @@ public class AccountTools {
   }
 
   @Tool(description = "Get one of the logged-in user's demo policies by policy id")
-  public String getPolicy(
-      @ToolParam(description = "Policy UUID") String policyId) {
+  public String getPolicy(@ToolParam(description = "Policy UUID") String policyId) {
     try {
       UUID userId = CurrentUser.requireUserId();
       Policy policy = purchaseService.getOwned(userId, UUID.fromString(policyId));
       return summarizePolicy(policy);
     } catch (Exception ex) {
       return "Could not get policy: " + message(ex);
+    }
+  }
+
+  @Tool(
+      description =
+          "File a demo claim against one of the user's policies. "
+              + "Requires policyId (from listMyPolicies) and a short incident description.")
+  public String fileClaim(
+      @ToolParam(description = "Policy UUID to claim against") String policyId,
+      @ToolParam(description = "What happened / claim description") String description) {
+    try {
+      UUID userId = CurrentUser.requireUserId();
+      Claim claim = claimService.file(userId, UUID.fromString(policyId), description);
+      return "Demo claim submitted. claimNumber="
+          + claim.getClaimNumber()
+          + " policyId="
+          + claim.getPolicyId()
+          + " status="
+          + claim.getStatus()
+          + " description="
+          + claim.getDescription();
+    } catch (Exception ex) {
+      return "Could not file claim: " + message(ex);
     }
   }
 

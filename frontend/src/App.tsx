@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { AuthModal, type AuthMode } from './auth/AuthModal'
 import { useAuth } from './auth/AuthContext'
+import { FileClaimModal } from './claims/FileClaimModal'
 import { ChatPanel } from './components/ChatPanel'
-import { StubModal } from './components/StubModal'
 import { MyPolicies } from './quote/MyPolicies'
 import { QuoteModal } from './quote/QuoteModal'
 
 export default function App() {
   const { user, logout, ready } = useAuth()
-  const [claimStubOpen, setClaimStubOpen] = useState(false)
+  const [claimOpen, setClaimOpen] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [policiesOpen, setPoliciesOpen] = useState(false)
   const [policiesRefresh, setPoliciesRefresh] = useState(0)
@@ -28,6 +28,14 @@ export default function App() {
     setQuoteOpen(true)
   }
 
+  function onFileClaim() {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    setClaimOpen(true)
+  }
+
   function onMyPolicies() {
     if (!user) {
       openAuth('login')
@@ -44,7 +52,7 @@ export default function App() {
           <button type="button" className="nav-link" onClick={onGetQuote}>
             Get a quote
           </button>
-          <button type="button" className="nav-link" onClick={() => setClaimStubOpen(true)}>
+          <button type="button" className="nav-link" onClick={onFileClaim}>
             File a claim
           </button>
           {ready && user ? (
@@ -91,12 +99,7 @@ export default function App() {
         onModeChange={setAuthMode}
         onClose={() => setAuthOpen(false)}
       />
-      <StubModal
-        open={claimStubOpen}
-        onClose={() => setClaimStubOpen(false)}
-        title="File a claim"
-        message="Claims filing isn’t available in this demo yet. Ask Casa can still explain cover and exclusions."
-      />
+      <FileClaimModal open={claimOpen} onClose={() => setClaimOpen(false)} />
       <QuoteModal
         open={quoteOpen}
         onClose={() => setQuoteOpen(false)}

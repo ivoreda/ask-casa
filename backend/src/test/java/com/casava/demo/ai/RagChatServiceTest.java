@@ -10,13 +10,17 @@ import static org.mockito.Mockito.when;
 import com.casava.demo.config.AiProperties;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import reactor.core.publisher.Flux;
 
 class RagChatServiceTest {
@@ -110,5 +114,35 @@ class RagChatServiceTest {
             });
 
     assertThat(sessionStore.getMessages("session-1")).hasSize(2);
+  }
+
+  @AfterEach
+  void clearSecurity() {
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void prependsAuthenticatedPrefixAndPassesAccountToolsWhenLoggedIn() {
+    SecurityContextHolder.getContext()
+        .setAuthentication(
+            new UsernamePasswordAuthenticationToken(UUID.randomUUID(), null, List.of()));
+
+    when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+
+    AtomicReference<String> capturedUserPrompt = new AtomicReference<>();
+    AtomicReference<Object> capturedTool = new AtomicReference<>();
+    when(streamer.stream(eq(SystemPrompt.TEXT), any(String.class), any()))
+        .thenAnswer(
+            invocation -> {
+              capturedUserPrompt.set(invocation.getArgument(1));
+              // Varargs: Mockito exposes each tool as a separate argument after the fixed params.
+              capturedTool.set(invocation.getArgument(2));
+              return Flux.just("You have one policy.");
+            });
+
+    service.chat("session-auth", "What's on my policy?");
+
+    assertThat(capturedUserPrompt.get()).startsWith(SystemPrompt.AUTHENTICATED_USER_PREFIX.trim());
+    assertThat(capturedTool.get()).isSameAs(accountTools);
   }
 }

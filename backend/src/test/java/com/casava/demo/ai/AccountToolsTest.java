@@ -6,6 +6,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.casava.demo.claims.Claim;
+import com.casava.demo.claims.ClaimService;
+import com.casava.demo.claims.ClaimStatus;
 import com.casava.demo.purchase.PurchaseService;
 import com.casava.demo.quote.Quote;
 import com.casava.demo.quote.QuoteRequest;
@@ -27,6 +30,7 @@ class AccountToolsTest {
 
   private QuoteService quoteService;
   private PurchaseService purchaseService;
+  private ClaimService claimService;
   private AccountTools tools;
   private UUID userId;
 
@@ -34,7 +38,8 @@ class AccountToolsTest {
   void setUp() {
     quoteService = mock(QuoteService.class);
     purchaseService = mock(PurchaseService.class);
-    tools = new AccountTools(quoteService, purchaseService);
+    claimService = mock(ClaimService.class);
+    tools = new AccountTools(quoteService, purchaseService, claimService);
     userId = UUID.randomUUID();
     SecurityContextHolder.getContext()
         .setAuthentication(new UsernamePasswordAuthenticationToken(userId, null, List.of()));
@@ -77,5 +82,25 @@ class AccountToolsTest {
     assertThat(result).contains("800000");
     assertThat(result).contains(quote.getId().toString());
     assertThat(result.toLowerCase()).contains("demo");
+  }
+
+  @Test
+  void fileClaimDelegatesToClaimService() {
+    UUID policyId = UUID.randomUUID();
+    Claim claim = new Claim();
+    claim.setId(UUID.randomUUID());
+    claim.setPolicyId(policyId);
+    claim.setClaimNumber("CLM-ABCDEF12");
+    claim.setStatus(ClaimStatus.SUBMITTED);
+    claim.setDescription("Phone stolen on the bus.");
+
+    when(claimService.file(eq(userId), eq(policyId), eq("Phone stolen on the bus.")))
+        .thenReturn(claim);
+
+    String result = tools.fileClaim(policyId.toString(), "Phone stolen on the bus.");
+
+    verify(claimService).file(userId, policyId, "Phone stolen on the bus.");
+    assertThat(result).contains("CLM-ABCDEF12");
+    assertThat(result).contains("SUBMITTED");
   }
 }

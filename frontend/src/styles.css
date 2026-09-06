@@ -356,12 +356,20 @@ input {
   color: var(--ink);
 }
 
-.field input {
+.field input,
+.field select,
+.field textarea {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
   background: #fff;
   color: var(--ink);
+  font: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 6rem;
 }
 
 .form-error {

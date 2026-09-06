@@ -46,16 +46,18 @@ public class RagChatService {
     List<Document> retrieved = vectorStore.similaritySearch(request);
     List<Document> accepted = filterByThreshold(retrieved);
     List<Document> contextDocs = truncateToMaxChars(accepted);
-
-    String userPrompt = buildUserPrompt(contextDocs, message);
     List<Citation> citations = toCitations(contextDocs);
 
     Object[] tools = CurrentUser.isPresent() ? new Object[] {accountTools} : new Object[0];
+    String promptText = buildUserPrompt(contextDocs, message);
+    if (CurrentUser.isPresent()) {
+      promptText = SystemPrompt.AUTHENTICATED_USER_PREFIX + promptText;
+    }
 
     StringBuilder assistant = new StringBuilder();
     Flux<String> tokens =
         streamer
-            .stream(SystemPrompt.TEXT, userPrompt, tools)
+            .stream(SystemPrompt.TEXT, promptText, tools)
             .doOnNext(assistant::append)
             .doOnComplete(() -> sessionStore.appendAssistant(sessionId, assistant.toString()));
 

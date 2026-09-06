@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { CheckoutPanel } from './CheckoutPanel'
 import {
@@ -33,11 +33,16 @@ export function QuoteModal({
   onPurchased,
   onNeedAuth,
 }: QuoteModalProps) {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const incomeId = useId()
   const monthsId = useId()
   const dependantsId = useId()
   const deviceId = useId()
+  const requestGen = useRef(0)
+  const authIdentityRef = useRef<{
+    token: string | null
+    userId: string | null
+  } | null>(null)
 
   const [productSlug, setProductSlug] = useState<ProductSlug>('income-protection')
   const [monthlyIncome, setMonthlyIncome] = useState('500000')
@@ -66,6 +71,8 @@ export function QuoteModal({
 
   useEffect(() => {
     if (!open) {
+      requestGen.current += 1
+      authIdentityRef.current = null
       setSavedQuote(null)
       setPreview(null)
       setPendingRequest(null)
@@ -76,6 +83,36 @@ export function QuoteModal({
       setBusy(false)
     }
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+
+    const next = { token, userId: user?.id ?? null }
+    const prev = authIdentityRef.current
+    authIdentityRef.current = next
+
+    if (!prev) return
+
+    const loggedOut = prev.token != null && next.token == null
+    const identityChanged =
+      prev.userId != null &&
+      next.userId != null &&
+      prev.userId !== next.userId
+
+    if (!loggedOut && !identityChanged) return
+
+    requestGen.current += 1
+    setSavedQuote(null)
+    setWantsCheckout(false)
+    setStep('form')
+    setPurchased(false)
+    setError(null)
+    setBusy(false)
+    if (identityChanged) {
+      setPreview(null)
+      setPendingRequest(null)
+    }
+  }, [open, token, user?.id])
 
   useEffect(() => {
     if (!wantsCheckout || !token || !pendingRequest) return
@@ -137,26 +174,30 @@ export function QuoteModal({
 
   async function handleQuote(e: FormEvent) {
     e.preventDefault()
+    const gen = ++requestGen.current
     setError(null)
     setBusy(true)
     const request = buildRequest()
     try {
       if (token) {
         const created = await createQuote(token, request)
+        if (gen !== requestGen.current) return
         setSavedQuote(created)
         setPreview(null)
         setPendingRequest(null)
       } else {
         const result = await previewQuote(request)
+        if (gen !== requestGen.current) return
         setPreview(result)
         setSavedQuote(null)
         setPendingRequest(request)
       }
     } catch (err) {
+      if (gen !== requestGen.current) return
       clearQuoteResult()
       setError(err instanceof Error ? err.message : 'Quote failed')
     } finally {
-      setBusy(false)
+      if (gen === requestGen.current) setBusy(false)
     }
   }
 
@@ -174,23 +215,27 @@ export function QuoteModal({
       setError('Calculate a premium before continuing.')
       return
     }
+    const gen = ++requestGen.current
     setError(null)
     setBusy(true)
     try {
       const created = await createQuote(token, pendingRequest)
+      if (gen !== requestGen.current) return
       setSavedQuote(created)
       setPreview(null)
       setStep('checkout')
     } catch (err) {
+      if (gen !== requestGen.current) return
       setError(err instanceof Error ? err.message : 'Could not save quote')
     } finally {
-      setBusy(false)
+      if (gen === requestGen.current) setBusy(false)
     }
   }
 
   function selectProduct(slug: ProductSlug) {
     setProductSlug(slug)
     clearQuoteResult()
+    setWantsCheckout(false)
     setError(null)
     setStep('form')
     setPurchased(false)

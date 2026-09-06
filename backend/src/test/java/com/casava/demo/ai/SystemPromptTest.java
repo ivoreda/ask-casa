@@ -43,4 +43,18 @@ class SystemPromptTest {
     assertThat(lower).contains("createquote");
     assertThat(lower).contains("fileclaim");
   }
+
+  @Test
+  void promptRequiresListMyClaimsForClaimAndPolicyQuestions() {
+    String lower = SystemPrompt.TEXT.toLowerCase();
+    assertThat(lower).contains("listmyclaims");
+    assertThat(lower).contains("claim history");
+  }
+
+  @Test
+  void authenticatedPrefixMentionsListMyClaims() {
+    String lower = SystemPrompt.AUTHENTICATED_USER_PREFIX.toLowerCase();
+    assertThat(lower).contains("listmyclaims");
+    assertThat(lower).contains("fileclaim");
+  }
 }

@@ -2,6 +2,7 @@ package com.casava.demo.ai;
 
 import com.casava.demo.auth.CurrentUser;
 import com.casava.demo.claims.Claim;
+import com.casava.demo.claims.ClaimResponse;
 import com.casava.demo.claims.ClaimService;
 import com.casava.demo.purchase.Policy;
 import com.casava.demo.purchase.PurchaseService;
@@ -115,6 +116,23 @@ public class AccountTools {
     }
   }
 
+  @Tool(
+      description =
+          "List the logged-in user's demo claims (newest first). "
+              + "Call this for claim history and when summarizing policies so you can mention claims.")
+  public String listMyClaims() {
+    try {
+      UUID userId = CurrentUser.requireUserId();
+      List<ClaimResponse> claims = claimService.listMineResponses(userId);
+      if (claims.isEmpty()) {
+        return "You have no claims yet. Offer to help them file a claim if they have a policy.";
+      }
+      return claims.stream().map(AccountTools::summarizeClaim).collect(Collectors.joining("\n"));
+    } catch (Exception ex) {
+      return "Could not list claims: " + message(ex);
+    }
+  }
+
   private static String summarizePolicy(Policy policy) {
     return "policyId="
         + policy.getId()
@@ -128,6 +146,21 @@ public class AccountTools {
         + policy.getCoverAmount()
         + " status="
         + policy.getStatus();
+  }
+
+  private static String summarizeClaim(ClaimResponse claim) {
+    return "claimNumber="
+        + claim.claimNumber()
+        + " status="
+        + claim.status()
+        + " policyId="
+        + claim.policyId()
+        + " policyNumber="
+        + claim.policyNumber()
+        + " product="
+        + claim.productSlug()
+        + " description="
+        + claim.description();
   }
 
   private static String message(Exception ex) {
